@@ -1,9 +1,13 @@
-# react-activestorage-provider
+# @docflow/react-activestorage-provider
 
-[![NPM](https://img.shields.io/npm/v/react-activestorage-provider.svg)](https://www.npmjs.com/package/react-activestorage-provider)
-[![Build Status](https://semaphoreci.com/api/v1/cbothner/react-activestorage-provider/branches/master/shields_badge.svg)](https://semaphoreci.com/cbothner/react-activestorage-provider)
-[![CodeClimate Maintainability](https://img.shields.io/codeclimate/maintainability/cbothner/react-activestorage-provider.svg)](https://codeclimate.com/github/cbothner/react-activestorage-provider/maintainability)
-[![CodeClimate Coverage](https://img.shields.io/codeclimate/coverage/cbothner/react-activestorage-provider.svg)](https://codeclimate.com/github/cbothner/react-activestorage-provider/coverage)
+[![NPM](https://img.shields.io/npm/v/@docflow/react-activestorage-provider.svg)](https://www.npmjs.com/package/@docflow/react-activestorage-provider)
+
+> [!NOTE]  
+> This is a fork of `react-activestorage-provider`, rewritten in TypeScript and modern React (supporting React 18).
+>
+> There is an important breaking change regarding the `uploads` array containing finished uploads, see [CHANGELOG.md](CHANGELOG.md).
+>
+> Apart from that, this package also extracts the functionality of `DirectUploadProvider` into a new hook `useDirectUpload` that you can use to skip the render function. The rest is the same.
 
 ActiveStorage is an amazing addition to Rails 5.2, and as usual the team have made it fantastically simple to use... if you’re generating HTML server-side, that is. This component aims to make it just as easy to use from React.
 
@@ -12,7 +16,7 @@ ActiveStorageProvider handles the direct upload of a file to an ActiveStorage se
 ## Install
 
 ```bash
-npm install --save react-activestorage-provider
+npm install --save @docflow/react-activestorage-provider
 ```
 
 ## Usage
@@ -20,53 +24,55 @@ npm install --save react-activestorage-provider
 ActiveStorageProvider makes it easy to add a simple upload button. When you call `handleUpload` with a `FileList` or an array of `File`s, this component creates a `Blob` record, uploads the file directly to your storage service, and then hits your Rails controller to attach the blob to your model. (If you want to handle the attachment yourself in order to, for example, provide other attributes, [see the lower level `DirectUploadProvider`](#directuploadprovider).)
 
 ```jsx
-import ActiveStorageProvider from 'react-activestorage-provider'
+import ActiveStorageProvider from "@docflow/react-activestorage-provider";
 
 // ...
 
 return (
   <ActiveStorageProvider
     endpoint={{
-      path: '/profile',
-      model: 'User',
-      attribute: 'avatar',
-      method: 'PUT',
+      path: "/profile",
+      model: "User",
+      attribute: "avatar",
+      method: "PUT",
     }}
-    onSubmit={user => this.setState({ avatar: user.avatar })}
+    onSubmit={(user) => this.setState({ avatar: user.avatar })}
     render={({ handleUpload, uploads, ready }) => (
       <div>
         <input
           type="file"
           disabled={!ready}
-          onChange={e => handleUpload(e.currentTarget.files)}
+          onChange={(e) => handleUpload(e.currentTarget.files)}
         />
 
-        {uploads.map(upload => {
+        {uploads.map((upload) => {
           switch (upload.state) {
-            case 'waiting':
-              return <p key={upload.id}>Waiting to upload {upload.file.name}</p>
-            case 'uploading':
+            case "waiting":
+              return (
+                <p key={upload.id}>Waiting to upload {upload.file.name}</p>
+              );
+            case "uploading":
               return (
                 <p key={upload.id}>
                   Uploading {upload.file.name}: {upload.progress}%
                 </p>
-              )
-            case 'error':
+              );
+            case "error":
               return (
                 <p key={upload.id}>
                   Error uploading {upload.file.name}: {upload.error}
                 </p>
-              )
-            case 'finished':
+              );
+            case "finished":
               return (
                 <p key={upload.id}>Finished uploading {upload.file.name}</p>
-              )
+              );
           }
         })}
       </div>
     )}
   />
-)
+);
 ```
 
 ### `ActiveStorageProvider` Props
@@ -77,38 +83,36 @@ These are your options for configuring ActiveStorageProvider.
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `directUploadsPath`      | `string`<br />The direct uploads path on your Rails app, if you’ve overridden `ActiveStorage::DirectUploadsController`                                                    |
 | `endpoint`\*             | `{ path: string, model: string, attribute: string, method: string, host?: string, port?: string, protocol?: string }`<br />The details for the request to attach the file |
-| `headers`                | `{[key: string]: string}`<br/>Optional headers to add to request, can also be used to override default headers                                                            |
-| `multiple`               | `boolean` (false)<br/>Whether the component should accept multiple files. If true, the model should use `has_many_attached`                                               |
-| `onBeforeBlobRequest`    | `({ id: string, file: File, xhr: XMLHttpRequest }) => mixed`<br />A callback that allows you to modify the blob request                                                   |
-| `onBeforeStorageRequest` | `({ id: string, file: File, xhr: XMLHttpRequest }) => mixed`<br />A callback that allows you to modify the storage request                                                |
-| `onError`                | `Response => mixed`<br />A callback to handle an error (>= 400) response by the server in saving your model                                                               |
-| `onSubmit`\*             | `Object => mixed`<br />A callback for the server response to successfully saving your model                                                                               |
-| `render`\*               | `RenderProps => React.Node`<br />Render props                                                                                                                             |
+| `headers`                | `Record<string, string>`<br/>Optional headers to add to request, can also be used to override default headers                                                             |
+| `multiple`               | `boolean` (default: false)<br/>Whether the component should accept multiple files. If true, the model should use `has_many_attached`                                      |
+| `onBeforeBlobRequest`    | `(request: { id: string, file: File, xhr: XMLHttpRequest }) => void`<br />A callback that allows you to modify the blob request                                           |
+| `onBeforeStorageRequest` | `(request: { id: string, file: File, xhr: XMLHttpRequest }) => void`<br />A callback that allows you to modify the storage request                                        |
+| `onError`                | `(error: Response) => void`<br />A callback to handle an error (>= 400) response by the server in saving your model                                                       |
+| `onSubmit`\*             | `(endpointResponse: unknown) => void`<br />A callback for the server response to successfully saving your model                                                           |
+| `render`\*               | `(props: RenderProps) => ReactNode`<br />Render function for your uploader                                                                                                |
 
 ### `RenderProps`
 
 This is the type of the argument with which your render function will be called.
 
-```jsx
+```ts
 export type RenderProps = {
-  ready: boolean /* false while any file is uploading */,
-  uploads: ActiveStorageFileUpload[] /* uploads in progress */,
-
-  handleUpload: (FileList | File[]) => mixed /* call to initiate an upload */,
+  /** false while any file is uploading */
+  ready: boolean;
+  /** uploads in progress */
+  uploads: ActiveStorageFileUpload[];
+  /** call to initiate an upload */
+  handleUpload: (files: FileList | File[]) => unknown;
 
   /* or, if you want more granular control... */
 
-  /* call to set list of files to be uploaded */
-  handleChooseFiles: (FileList | File[]) => mixed,
-  /* then call to begin the upload of the files in the list */
-  handleBeginUpload: () => mixed,
-}
+  /** call to set list of files to be uploaded */
+  handleChooseFiles: (files: FileList | File[]) => unknown;
+  /** begin the upload of the files in the list */
+  handleBeginUpload: () => unknown;
+};
 
-type ActiveStorageFileUpload =
-  | { state: 'waiting', id: string, file: File }
-  | { state: 'uploading', id: string, file: File, progress: number }
-  | { state: 'error', id: string, file: File, error: string }
-  | { state: 'finished', id: string, file: File }
+export type CustomHeaders = Record<string, string>;
 ```
 
 ## `DirectUploadProvider`
@@ -123,7 +127,7 @@ function PostForm() {
   }
 
   return (
-    <DirectUploadProvider multiple onSuccess={handleAttachment} render={...} />
+    <DirectUploadProvider onSuccess={handleAttachment} render={...} />
   )
 }
 ```
@@ -131,7 +135,7 @@ function PostForm() {
 `DirectUploadProvider` is a named export, so
 
 ```jsx
-import { DirectUploadProvider } from 'react-activestorage-provider'
+import { DirectUploadProvider } from "@docflow/react-activestorage-provider";
 ```
 
 and use it with the following props:
@@ -139,10 +143,30 @@ and use it with the following props:
 | Prop (\*required)        | Description                                                                                                                             |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `directUploadsPath`      | `string`<br />The direct uploads path on your Rails app, if you’ve overridden `ActiveStorage::DirectUploadsController`                  |
-| `headers`                | `{[key: string]: string}`<br/>Optional headers to add to request                                                                        |
-| `multiple`               | `boolean`<br/>Whether the component should accept multiple files. If true, the model should use `has_many_attached`                     |
-| `onBeforeBlobRequest`    | `({ id: string, file: File, xhr: XMLHttpRequest }) => mixed`<br />A callback that allows you to modify the blob request                 |
-| `onBeforeStorageRequest` | `({ id: string, file: File, xhr: XMLHttpRequest }) => mixed`<br />A callback that allows you to modify the storage request              |
-| `onSuccess`\*            | `(string[]) => mixed`<br />The callback that will be called with the signed ids of the files after the upload is complete               |
+| `headers`                | `Record<string, string>`<br/>Optional headers to add to request                                                                         |
+| `onBeforeBlobRequest`    | `(request: { id: string, file: File, xhr: XMLHttpRequest }) => void`<br />A callback that allows you to modify the blob request         |
+| `onBeforeStorageRequest` | `(request: { id: string, file: File, xhr: XMLHttpRequest }) => void`<br />A callback that allows you to modify the storage request      |
+| `onSuccess`\*            | `(signedIds: string[]) => void`<br />The callback that will be called with the signed ids of the files after the upload is complete     |
 | `origin`                 | `{ host?: string, port?: string, protocol?: string }`<br />The origin of your rails server. Defaults to where your React app is running |
-| `render`\*               | `RenderProps => React.Node`<br />Render props                                                                                           |
+| `render`\*               | `(props: RenderProps) => ReactNode`<br />Render function for your uploader                                                              |
+
+## `useDirectUpload`
+
+If you want to use the functionality of `DirectUploadProvider` without the hassle of the render function, use this hook. It takes all the same props as `DirectUploadProvider`, except for `render`, and returns the same thing as the render function accepts as an argument.
+
+```tsx
+import { useDirectUpload } from "@docflow/react-activestorage-provider";
+
+function Uploader() {
+  const { handleUpload } = useDirectUpload({
+    onSuccess: (signedIds) => console.log(signedIds),
+  });
+
+  return (
+    <input
+      type="file"
+      onChange={(e) => e.target.files && handleUpload(e.target.files)}
+    />
+  );
+}
+```

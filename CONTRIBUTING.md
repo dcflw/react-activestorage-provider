@@ -16,8 +16,10 @@ it.
 
 If you can write a patch to fix the bug you found, or to implement the feature
 you’re proposing, even better. Thanks so much! When pushing your branch, please
-lint, format, and test your changes. You can take care of all three in one go:
+lint, format, and test your changes:
 
 ```bash
-npm run pull-request
+pnpm lint
+pnpm format
+pnpm test
 ```
