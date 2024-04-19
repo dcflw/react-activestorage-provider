@@ -1,6 +1,6 @@
 {
   "name": "@docflow/react-activestorage-provider",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A React component that allows easy file upload using ActiveStorage. Updated for React 18",
   "keywords": [
     "react",

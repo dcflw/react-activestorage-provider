@@ -130,7 +130,7 @@ const DirectUploadProvider = ({
     onSuccess,
   });
 
-  return render(renderProps);
+  return <>{render(renderProps)}</>;
 };
 
 export default DirectUploadProvider;
